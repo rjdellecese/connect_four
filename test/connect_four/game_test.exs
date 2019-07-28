@@ -1,5 +1,7 @@
-defmodule GameTest do
+defmodule ConnectFour.GameTest do
   use ExUnit.Case, async: true
+  alias ConnectFour.Game
+
   doctest Game
 
   setup do

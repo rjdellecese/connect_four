@@ -1,4 +1,4 @@
-defmodule Game do
+defmodule ConnectFour.Game do
   @moduledoc """
   A Connect Four game.
 
@@ -20,6 +20,8 @@ defmodule Game do
   import Bitwise
 
   use GenServer
+
+  alias ConnectFour.Game
 
   defstruct(
     bitboards: %{yellow: 0, red: 0},
