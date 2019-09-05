@@ -116,6 +116,10 @@ defmodule ConnectFour.Game do
       iex> Game.move(pid, [4, 5])
       {:ok, %{moves: [4, 5], result: nil}}
 
+      iex> {:ok, pid} = Game.start_link()
+      iex> Game.move(pid, [4, 7])
+      {:error, "One or more invalid moves"}
+
   """
   @spec move(pid(), column() | moves()) ::
           {:ok, %{moves: moves(), result: result()}} | {:error, String.t()}

@@ -67,4 +67,10 @@ defmodule ConnectFour.GameTest do
 
     assert status == :error
   end
+
+  test "rejects all moves if any of many moves submitted is invalid", %{game: game} do
+    {:error, _msg} = Game.move(game, List.duplicate(0, 7))
+
+    assert {:ok, %{moves: [], result: nil}} = Game.look(game)
+  end
 end
