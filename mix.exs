@@ -12,7 +12,7 @@ defmodule ConnectFour.MixProject do
 
       # Testing
       test_coverage: [tool: ExCoveralls],
-      preferred_CLI_env: [
+      preferred_cli_env: [
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.post": :test,
