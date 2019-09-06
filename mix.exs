@@ -22,6 +22,7 @@ defmodule ConnectFour.MixProject do
 
       # Documentation
       name: "Connect Four",
+      description: "A fast Connect Four game engine.",
       source_url: "https://github.com/rjdellecese/connect_four",
       homepage_url: "https://github.com/rjdellecese/connect_four"
     ]
