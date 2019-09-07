@@ -1,8 +1,8 @@
 # Connect Four [![CircleCI](https://img.shields.io/circleci/build/github/rjdellecese/connect_four)](https://circleci.com/gh/rjdellecese/connect_four) [![Coverage Status](https://coveralls.io/repos/github/rjdellecese/connect_four/badge.svg?branch=master)](https://coveralls.io/github/rjdellecese/connect_four?branch=master) [![Hex.pm](https://img.shields.io/hexpm/v/connect_four)](https://hex.pm/packages/connect_four) [![Hex.pm](https://img.shields.io/hexpm/l/connect_four)](https://github.com/rjdellecese/connect_four/blob/master/LICENSE)
 
 A fast Connect Four game engine. Each game is a GenServer, making it well-suited
-as a foundation for a Connect Four platform, or generally for any scenario
-requiring the ability to simulating multiple games simultaneously.
+as the foundation of a Connect Four platform, or generally for any scenario
+requiring the ability to simulate multiple games simultaneously.
 
 See the `ConnectFour.Game` module functions for usage examples.
 
