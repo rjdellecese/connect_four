@@ -1,20 +1,11 @@
 defmodule ConnectFour.Game do
   @moduledoc """
-  A Connect Four game.
+  A Connect Four game, stored in a GenServer.
 
   Players are distinguished by game piece color (yellow and red). Moves are represented by the
   columns in which they are made.
 
   Yellow moves first.
-
-  This implementation is based on an efficient implementation written by John Tromp, which uses
-  bitboards to be very small and very fast.
-
-  This is how it works:
-  [https://github.com/denkspuren/BitboardC4/blob/master/BitboardDesign.md](https://github.com/denkspuren/BitboardC4/blob/master/BitboardDesign.md)
-
-  Original Java implementation:
-  [https://tromp.github.io/c4/Connect4.java](https://tromp.github.io/c4/Connect4.java)
   """
 
   import Bitwise
@@ -31,6 +22,7 @@ defmodule ConnectFour.Game do
     result: nil
   )
 
+  @typedoc false
   @type t :: %__MODULE__{
           bitboards: %{required(:yellow) => integer(), required(:red) => integer()},
           column_heights: column_heights(),
