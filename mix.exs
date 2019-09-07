@@ -26,7 +26,7 @@ defmodule ConnectFour.MixProject do
       source_url: "https://github.com/rjdellecese/connect_four",
       homepage_url: "https://github.com/rjdellecese/connect_four",
       docs: [
-        main: "README",
+        main: "readme",
         extras: ["README.md"]
       ]
     ]
