@@ -5,12 +5,11 @@ defmodule ConnectFour.GameTest do
   doctest Game
 
   setup do
-    {:ok, game} = Game.start_link()
-    %{game: game}
+    %{game: %Game{}}
   end
 
   test "connects four horizontally _", %{game: game} do
-    Enum.each([1, 1, 2, 2, 3, 3], &Game.move(game, &1))
+    {:ok, game} = Game.move(game, [1, 1, 2, 2, 3, 3])
 
     {:ok, %{result: result}} = Game.move(game, 4)
 
@@ -18,7 +17,7 @@ defmodule ConnectFour.GameTest do
   end
 
   test "connects four vertically |", %{game: game} do
-    Enum.each([0, 6, 5, 6, 5, 6, 5], &Game.move(game, &1))
+    {:ok, game} = Game.move(game, [0, 6, 5, 6, 5, 6, 5])
 
     {:ok, %{result: result}} = Game.move(game, 6)
 
@@ -26,7 +25,7 @@ defmodule ConnectFour.GameTest do
   end
 
   test "connects four diagonally backwards \\", %{game: game} do
-    Enum.each([5, 4, 4, 5, 3, 3, 3, 2, 2, 2], &Game.move(game, &1))
+    {:ok, game} = Game.move(game, [5, 4, 4, 5, 3, 3, 3, 2, 2, 2])
 
     {:ok, %{result: result}} = Game.move(game, 2)
 
@@ -34,7 +33,7 @@ defmodule ConnectFour.GameTest do
   end
 
   test "connects four diagonally forwards /", %{game: game} do
-    Enum.each([6, 1, 2, 2, 1, 3, 3, 3, 4, 4, 4], &Game.move(game, &1))
+    {:ok, game} = Game.move(game, [6, 1, 2, 2, 1, 3, 3, 3, 4, 4, 4])
 
     {:ok, %{result: result}} = Game.move(game, 4)
 
@@ -42,12 +41,13 @@ defmodule ConnectFour.GameTest do
   end
 
   test "reports a draw", %{game: game} do
-    Enum.each(
-      [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1] ++
-        [2, 3, 2, 3, 3, 2, 3, 2, 2, 3, 2, 3] ++
-        [4, 5, 4, 5, 5, 4, 5, 4, 4, 5, 4, 5] ++ [6, 6, 6, 6, 6],
-      &Game.move(game, &1)
-    )
+    {:ok, game} =
+      Game.move(
+        game,
+        [0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1] ++
+          [2, 3, 2, 3, 3, 2, 3, 2, 2, 3, 2, 3] ++
+          [4, 5, 4, 5, 5, 4, 5, 4, 4, 5, 4, 5] ++ [6, 6, 6, 6, 6]
+      )
 
     {:ok, %{result: result}} = Game.move(game, 6)
 
@@ -61,7 +61,7 @@ defmodule ConnectFour.GameTest do
   end
 
   test "disallows moves in columns that are full", %{game: game} do
-    Enum.each([0, 0, 0, 0, 0, 0], &Game.move(game, &1))
+    {:ok, game} = Game.move(game, List.duplicate(0, 6))
 
     {status, _msg} = Game.move(game, 0)
 
@@ -69,8 +69,8 @@ defmodule ConnectFour.GameTest do
   end
 
   test "rejects all moves if any of many moves submitted is invalid", %{game: game} do
-    {:error, _msg} = Game.move(game, List.duplicate(0, 7))
+    {status, _msg} = Game.move(game, List.duplicate(0, 7))
 
-    assert {:ok, %{moves: [], result: nil}} = Game.look(game)
+    assert status == :error
   end
 end
