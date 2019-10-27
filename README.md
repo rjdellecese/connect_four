@@ -28,7 +28,7 @@ Add to the dependencies in your `mix.exs` file.
 ```elixir
 def deps do
   [
-    {:connect_four, "~> 0.1.4"}
+    {:connect_four, "~> 1.0.0"}
   ]
 end
 ```
