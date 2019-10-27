@@ -1,16 +1,17 @@
 defmodule ConnectFour.Game do
   @moduledoc """
-  A Connect Four game, stored in a GenServer.
+  A Connect Four game.
 
-  Players are distinguished by game piece color (yellow and red). Moves are represented by the
-  columns in which they are made.
+  Players are distinguished by game piece color (yellow and red). Moves are
+  represented by the columns in which they are made.
+
+  To create a new game, create an empty `ConnectFour.Game.t()` struct
+  (`%ConnectFour.Game{}`).
 
   Yellow moves first.
   """
 
   import Bitwise
-
-  use GenServer
 
   alias ConnectFour.Game
 
@@ -22,9 +23,24 @@ defmodule ConnectFour.Game do
     result: nil
   )
 
-  @typedoc false
-  @type t :: %__MODULE__{
-          bitboards: %{required(:yellow) => integer(), required(:red) => integer()},
+  @typedoc """
+  The representation of a Connect Four game. The struct contains five fields,
+  three of which should be considered read-only, and two which should be
+  considered private. None should ever be modified manually.
+
+  The read-only fields are:
+
+    - `moves`
+    - `plies`
+    - `result`
+
+  And the private fields are:
+
+    - `bitbords`
+    - `column_heights`
+  """
+  @type t :: %Game{
+          bitboards: %{required(:yellow) => bitboard(), required(:red) => bitboard()},
           column_heights: column_heights(),
           moves: moves(),
           plies: non_neg_integer(),
@@ -32,12 +48,13 @@ defmodule ConnectFour.Game do
         }
 
   @typedoc """
-  One of seven Connect Four game columns.
+  One of seven Connect Four game columns, zero-indexed.
   """
   @type column :: 0..6
 
   @typedoc """
-  A list of Connect Four moves, describing a game.
+  A list of Connect Four moves, describing a game. Yellow always moves first, so
+  the first move in the list will always be yellow's.
   """
   @type moves :: [column()]
 
@@ -47,211 +64,86 @@ defmodule ConnectFour.Game do
   @type player :: :yellow | :red
 
   @typedoc """
-  A Connect Four game result. `nil` means that the game has not yet ended. `:draw`s occur when all
-  columns are full and no player has connected four.
+  A ply is one move completed by one player. Plies are thus the total number of
+  moves completed in the game so far.
+
+  For example, if a game starts and yellow takes their turn (by "dropping" a
+  game piece into a column) and then red does the same, that game has two plies.
+  """
+  @type plies :: non_neg_integer()
+
+  @typedoc """
+  A Connect Four game result. `nil` means that the game has not yet ended.
+  `:draw`s occur when all columns are full and no player has connected four.
   """
   @type result :: :yellow_wins | :red_wins | :draw | nil
 
+  @typep bitboard :: non_neg_integer()
+
+  @typep column_height :: non_neg_integer()
   @typep column_heights :: %{
-           required(0) => non_neg_integer(),
-           required(1) => non_neg_integer(),
-           required(2) => non_neg_integer(),
-           required(3) => non_neg_integer(),
-           required(4) => non_neg_integer(),
-           required(5) => non_neg_integer(),
-           required(6) => non_neg_integer()
+           required(0) => column_height(),
+           required(1) => column_height(),
+           required(2) => column_height(),
+           required(3) => column_height(),
+           required(4) => column_height(),
+           required(5) => column_height(),
+           required(6) => column_height()
          }
 
-  ############
-  # Public API
-  ############
-
   @doc """
-  Start a GenServer process for a Connect Four game.
+  Submit a move for whomever's turn it currently is by specifying a column (0
+  through 6).
 
   ## Examples
 
-      iex> {:ok, pid} = Game.start_link()
-      iex> Process.alive?(pid)
-      true
+      iex> alias ConnectFour.Game
+      iex> {:ok, updated_game} = %Game{} |> Game.move(0)
+      iex> updated_game.moves
+      [0]
+
+  Make multiple moves at once by passing a list of moves.
+
+  ## Examples
+
+      iex> alias ConnectFour.Game
+      iex> {:ok, updated_game} = %Game{} |> Game.move([0, 1, 0])
+      iex> updated_game.moves
+      [0, 1, 0]
 
   """
-  @spec start_link() :: GenServer.on_start()
-  def start_link(), do: GenServer.start_link(__MODULE__, nil)
-
-  @doc """
-  Submit a move for whomever's turn it currently is by specifying a column (0 through 6).
-
-  Make multiple moves at once by passing a list of moves. If any of the moves are invalid, none
-  (including any valid ones preceding the invalid one) will be played.
-
-  `moves` is a list of all the moves completed in the game so far. Moves are
-  represented as integers between 0 and 6, each reflecting the column in which
-  the piece for that turn was dropped. The first integer in the list is yellow's
-  move, the second is red's, the third is yellow's, and so on.
-
-  Game results are reported as atoms and can be one of the following:
-    - `nil` (when the game is still in progress)
-    - `:yellow_wins`
-    - `:red_wins`
-    - `:draw` (when the board fills up without four connected pieces)
-
-  ## Examples
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.move(pid, 4)
-      {:ok, %{moves: [4], result: nil}}
-      iex> Game.move(pid, 5)
-      {:ok, %{moves: [4, 5], result: nil}}
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.move(pid, [4, 5])
-      {:ok, %{moves: [4, 5], result: nil}}
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.move(pid, [4, 7])
-      {:error, "One or more invalid moves"}
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.move(pid, [1, 1, 2, 2, 3, 3, 4])
-      {:ok, %{moves: [1, 1, 2, 2, 3, 3, 4], result: :yellow_wins}}
-      iex> Game.move(pid, 4)
-      {:error, "Game is over"}
-
-  """
-  @spec move(pid(), column() | moves()) ::
-          {:ok, %{moves: moves(), result: result()}} | {:error, String.t()}
-  def move(pid, column) when is_integer(column), do: GenServer.call(pid, {:move, column})
-
-  def move(pid, moves) when is_list(moves), do: GenServer.call(pid, {:move, moves})
-
-  @doc """
-  Get a list of legal moves for the current position.
-
-  ## Examples
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.legal_moves(pid)
-      {:ok, [0, 1, 2, 3, 4, 5, 6]}
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.move(pid, [3, 3, 3, 3, 3, 3])
-      {:ok, %{moves: [3, 3, 3, 3, 3, 3], result: nil}}
-      iex> Game.legal_moves(pid)
-      {:ok, [0, 1, 2, 4, 5, 6]}
-
-  """
-  @spec legal_moves(pid()) :: {:ok, moves()}
-  def legal_moves(pid), do: GenServer.call(pid, :legal_moves)
-
-  @doc """
-  Look at the state of the game.
-
-  ## Examples
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.move(pid, [4, 5, 4])
-      {:ok, %{moves: [4, 5, 4], result: nil}}
-      iex> Game.look(pid)
-      {:ok, %{moves: [4, 5, 4], result: nil}}
-
-  Works for finished games, too.
-
-  ## Examples
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.move(pid, [4, 5, 4, 5, 4, 5])
-      {:ok, %{moves: [4, 5, 4, 5, 4, 5], result: nil}}
-      iex> Game.move(pid, 4)
-      {:ok, %{moves: [4, 5, 4, 5, 4, 5, 4], result: :yellow_wins}}
-      iex> Game.look(pid)
-      {:ok, %{moves: [4, 5, 4, 5, 4, 5, 4], result: :yellow_wins}}
-
-  """
-  @spec look(pid()) :: {:ok, %{moves: moves(), result: result()}}
-  def look(pid), do: GenServer.call(pid, :look)
-
-  @doc """
-  Restart the game. The game does **not** need to have a result to be restarted.
-
-  ## Examples
-
-      iex> {:ok, pid} = Game.start_link()
-      iex> Game.move(pid, 4)
-      {:ok, %{moves: [4], result: nil}}
-      iex> Game.restart(pid)
-      :ok
-      iex> Game.move(pid, 4)
-      {:ok, %{moves: [4], result: nil}}
-
-  """
-  @spec restart(pid()) :: :ok
-  def restart(pid), do: GenServer.call(pid, :restart)
-
-  ##################
-  # Server callbacks
-  ##################
-
-  @impl true
-  @spec init(nil) :: {:ok, __MODULE__.t()} | {:ok, %{result: result()}}
-  def init(_init_arg), do: {:ok, %__MODULE__{}}
-
-  @impl true
-  @spec handle_call({:move, column() | moves()}, GenServer.from(), __MODULE__.t()) ::
-          {:reply,
-           {:ok, %{moves: moves(), result: result()}, __MODULE__.t()} | {:error, String.t()},
-           __MODULE__.t()}
-  def handle_call({:move, column}, _from, game = %__MODULE__{}) when is_integer(column) do
+  @spec move(Game.t(), column() | moves()) :: {:ok, Game.t()} | {:error, String.t()}
+  def move(game = %Game{}, column) when is_integer(column) do
     cond do
       !is_nil(game.result) ->
-        {:reply, {:error, "Game is over"}, game}
+        {:error, "Game is over"}
 
       legal_move?(column, game.column_heights) ->
-        updated_game = make_move(column, game)
-
-        {:reply, {:ok, %{moves: updated_game.moves, result: updated_game.result}}, updated_game}
+        {:ok, make_move(game, column)}
 
       true ->
-        {:reply, {:error, "Illegal move"}, game}
+        {:error, "Illegal move"}
     end
   end
 
-  def handle_call({:move, moves}, _from, game = %__MODULE__{}) when is_list(moves) do
-    case make_many_moves(moves, game) do
-      {:ok, updated_game} ->
-        {:reply, {:ok, %{moves: updated_game.moves, result: updated_game.result}}, updated_game}
+  def move(game = %Game{}, moves) when is_list(moves), do: make_many_moves(game, moves)
 
-      {:error, message} ->
-        {:reply, {:error, message}, game}
-    end
-  end
+  @doc """
+  Get a list of all the legal moves for a game. Returns an empty list if the
+  game is over.
 
-  @impl true
-  @spec handle_call(:legal_moves, GenServer.from(), __MODULE__.t()) ::
-          {:reply, {:ok, moves()}, __MODULE__.t()}
-  def handle_call(:legal_moves, _from, game = %__MODULE__{}) do
-    {:reply, {:ok, list_legal_moves(game.column_heights)}, game}
-  end
+  ## Examples
 
-  @impl true
-  @spec handle_call(:look, GenServer.from(), __MODULE__.t()) ::
-          {:reply, :ok, %{moves: moves(), result: result()}}
-  def handle_call(:look, _from, game = %__MODULE__{}) do
-    {:reply, {:ok, %{moves: game.moves, result: game.result}}, game}
-  end
+      iex> alias ConnectFour.Game
+      iex> %Game{} |> Game.legal_moves()
+      [0, 1, 2, 3, 4, 5, 6]
 
-  @impl true
-  @spec handle_call(:restart, GenServer.from(), __MODULE__.t()) :: {:reply, :ok, __MODULE__.t()}
-  def handle_call(:restart, _from, _game) do
-    {:reply, :ok, %__MODULE__{}}
-  end
+  """
+  @spec legal_moves(Game.t()) :: moves()
+  def legal_moves(game = %Game{}), do: list_legal_moves(game.column_heights)
 
-  ##############
-  # Game logic
-  ##############
-
-  @spec make_move(column(), __MODULE__.t()) :: __MODULE__.t()
-  defp make_move(column, game = %__MODULE__{}) do
+  @spec make_move(Game.t(), column()) :: Game.t()
+  defp make_move(game = %Game{}, column) do
     {old_column_height, new_column_heights} =
       Map.get_and_update!(game.column_heights, column, fn column_height ->
         {column_height, column_height + 1}
@@ -274,8 +166,8 @@ defmodule ConnectFour.Game do
     set_result(updated_game)
   end
 
-  @spec set_result(__MODULE__.t()) :: __MODULE__.t()
-  defp set_result(updated_game = %__MODULE__{}) do
+  @spec set_result(Game.t()) :: Game.t()
+  defp set_result(updated_game = %Game{}) do
     cond do
       connected_four?(updated_game) ->
         %{updated_game | result: winning_color(updated_game)}
@@ -288,33 +180,33 @@ defmodule ConnectFour.Game do
     end
   end
 
-  @spec color_to_move(__MODULE__.t()) :: Game.player()
-  defp color_to_move(%__MODULE__{plies: plies}) do
+  @spec color_to_move(Game.t()) :: player()
+  defp color_to_move(%Game{plies: plies}) do
     case plies &&& 1 do
       0 -> :yellow
       1 -> :red
     end
   end
 
-  @spec color_last_moved(__MODULE__.t()) :: Game.player()
-  defp color_last_moved(%__MODULE__{plies: plies}) do
+  @spec color_last_moved(Game.t()) :: player()
+  defp color_last_moved(%Game{plies: plies}) do
     case plies &&& 1 do
       1 -> :yellow
       0 -> :red
     end
   end
 
-  @spec make_many_moves(moves(), __MODULE__.t()) :: {:ok, __MODULE__.t()} | {:error, String.t()}
-  defp make_many_moves([next_move | remaining_moves], game = %__MODULE__{}) do
+  @spec make_many_moves(Game.t(), moves()) :: {:ok, Game.t()} | {:error, String.t()}
+  defp make_many_moves(game = %Game{}, [next_move | remaining_moves]) do
     if legal_move?(next_move, game.column_heights) do
-      updated_game = make_move(next_move, game)
-      make_many_moves(remaining_moves, updated_game)
+      updated_game = make_move(game, next_move)
+      make_many_moves(updated_game, remaining_moves)
     else
       {:error, "One or more invalid moves"}
     end
   end
 
-  defp make_many_moves([], game = %__MODULE__{}) do
+  defp make_many_moves(game = %Game{}, []) do
     {:ok, game}
   end
 
@@ -323,8 +215,8 @@ defmodule ConnectFour.Game do
     Enum.member?(list_legal_moves(column_heights), column)
   end
 
-  @spec connected_four?(__MODULE__.t()) :: boolean()
-  defp connected_four?(game = %__MODULE__{}) do
+  @spec connected_four?(Game.t()) :: boolean()
+  defp connected_four?(game = %Game{}) do
     bitboard = Map.get(game.bitboards, color_last_moved(game))
 
     direction_offsets = [1, 7, 6, 8]
@@ -335,7 +227,7 @@ defmodule ConnectFour.Game do
     end)
   end
 
-  defp winning_color(%__MODULE__{plies: plies}) do
+  defp winning_color(%Game{plies: plies}) do
     case plies &&& 1 do
       1 -> :yellow_wins
       0 -> :red_wins
