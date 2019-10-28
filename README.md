@@ -15,10 +15,10 @@ Read the documentation [here](https://hexdocs.pm/connect_four).
 Connect Four games are stored as bitboards, with a tiny bit of metadata. This
 allows for move validation to be as fast as a few bitwise operations.
 
-For a walkthrough of how it works, see
-[this excellent guide](https://tromp.github.io/c4/Connect4.java). You can also
-view the original Java implementation that this is based on
+You can view the original Java implementation that this is based on
 [here](https://tromp.github.io/c4/Connect4.java).
+For a walkthrough of how it works, see
+[this excellent guide](https://github.com/denkspuren/BitboardC4/blob/master/BitboardDesign.md).
 
 ## Installation
 
