@@ -3,8 +3,7 @@
 A fast, tiny Connect Four game engine.
 
 Also provides a GenServer implementation, which could easily form the foundation
-of a Connect Four platform, or generally for any use requiring the ability to
-simulate multiple games simultaneously.
+of a Connect Four platform.
 
 The `ConnectFour.Game` module provides the game logic, and the
 `ConnectFour.GameServer` module contains the GenServer implementation.
